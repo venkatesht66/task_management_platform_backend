@@ -19,7 +19,7 @@ const register = async (req, res) => {
     const user = await User.create({ name: xss(name), email: xss(email), passwordHash });
     const token = signToken({ sub: user._id });
 
-    res.status(201).json({ ok: true, data: { user: { id: user._id, email: user.email, fullName: user.fullName }, token } });
+    res.status(201).json({ ok: true, data: { user: { id: user._id, email: user.email, name: user.name }, token } });
   } catch (err) {
     console.error('Register error:', err);
     res.status(500).json({ ok: false, error: 'Register failed' });
@@ -41,7 +41,7 @@ const login = async (req, res) => {
       return res.status(401).json({ ok: false, error: 'Invalid credentials' });
     }
     const token = signToken({ sub: user._id });
-    res.json({ ok: true, data: { user: { id: user._id, email: user.email, fullName: user.fullName }, token } });
+    res.json({ ok: true, data: { user: { id: user._id, email: user.email, name: user.name }, token } });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({ ok: false, error: 'Login failed' });
@@ -56,4 +56,24 @@ const me = async (req, res) => {
   res.json({ ok: true, data: u });
 };
 
-module.exports = { register, login, me };
+// controllers/authController.js
+const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body;
+    if (!name || !name.trim()) return res.status(400).json({ ok: false, error: 'Name is required' });
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { name: name.trim() },
+      { new: true, select: '-passwordHash' }
+    );
+
+    res.json({ ok: true, data: user });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Update failed' });
+  }
+};
+
+
+module.exports = { register, login, me, updateProfile };
